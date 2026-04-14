@@ -44,39 +44,43 @@ void ATimeTrialPlayerController::BeginPlay()
 
 		if(!UIWidgetClass || !VehicleUIClass)
 		{
-			UE_LOG(LogRacingG, Error, TEXT("No Time Trial UI widget class specified. Please set the UIWidgetClass property in the TimeTrialPlayerController blueprint."));
-			return;
+			UE_LOG(LogRacingG, Warning, TEXT("TimeTrialPlayerController: UIWidgetClass or VehicleUIClass not set; continuing without one or both UI widgets."));
 		}
 
-		//// create the UI widget
-		//UIWidget = CreateWidget<UTimeTrialUI>(this, UIWidgetClass);
+		// create the time trial UI widget
+		if (UIWidgetClass)
+		{
+			UIWidget = CreateWidget<UTimeTrialUI>(this, UIWidgetClass);
+			if (UIWidget)
+			{
+				UIWidget->AddToViewport(0);
+				UIWidget->OnRaceStart.AddDynamic(this, &ATimeTrialPlayerController::StartRace);
+			}
+			else
+			{
+				UE_LOG(LogRacingG, Error, TEXT("TimeTrialPlayerController: Could not spawn Time Trial UI widget (class %s)."), *GetNameSafe(UIWidgetClass));
+			}
+		}
 
-		//if (UIWidget)
-		//{
-		//	UIWidget->AddToViewport(0);
+		// create the vehicle HUD widget
+		if (VehicleUIClass)
+		{
+			VehicleUI = CreateWidget<URacingGUI>(this, VehicleUIClass);
+			if (VehicleUI)
+			{
+				VehicleUI->AddToViewport(0);
+			}
+			else
+			{
+				UE_LOG(LogRacingG, Error, TEXT("TimeTrialPlayerController: Could not spawn vehicle UI widget (class %s)."), *GetNameSafe(VehicleUIClass));
+			}
+		}
 
-		//	// subscribe to the race start delegate
-		//	//UIWidget->OnRaceStart.AddDynamic(this, &ATimeTrialPlayerController::StartRace);
-
-		//} else {
-
-		//	UE_LOG(LogRacingG, Error, TEXT("Could not spawn Time Trial UI widget."));
-
-		//}
-		//
-
-		//// spawn the UI widget and add it to the viewport
-		//VehicleUI = CreateWidget<URacingGUI>(this, VehicleUIClass);
-
-		//if (VehicleUI)
-		//{
-		//	VehicleUI->AddToViewport(0);
-
-		//} else {
-
-		//	UE_LOG(LogRacingG, Error, TEXT("Could not spawn vehicle UI widget."));
-
-		//}
+		// If the UI is missing, don't leave the player permanently without control.
+		if (!IsValid(UIWidget))
+		{
+			StartRace();
+		}
 	}
 
 }
@@ -113,7 +117,12 @@ void ATimeTrialPlayerController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 
 	// get a pointer to the controlled pawn
-	VehiclePawn = CastChecked<ARacingGPawn>(InPawn);
+	VehiclePawn = Cast<ARacingGPawn>(InPawn);
+	if (!VehiclePawn)
+	{
+		UE_LOG(LogRacingG, Error, TEXT("TimeTrialPlayerController: Possessed pawn is not an ARacingGPawn (%s)."), *GetNameSafe(InPawn));
+		return;
+	}
 
 	// subscribe to the pawn's OnDestroyed delegate
 	VehiclePawn->OnDestroyed.AddDynamic(this, &ATimeTrialPlayerController::OnPawnDestroyed);
@@ -138,10 +147,18 @@ void ATimeTrialPlayerController::Tick(float Delta)
 
 void ATimeTrialPlayerController::StartRace()
 {
+	if (bRaceStarted)
+	{
+		return;
+	}
+
 	// get the finish line from the game mode
 	if (ATimeTrialGameMode* GM = Cast<ATimeTrialGameMode>(GetWorld()->GetAuthGameMode()))
 	{
-		SetTargetGate(GM->GetFinishLine()->GetNextMarker());
+		if (ATimeTrialTrackGate* FinishLine = GM->GetFinishLine())
+		{
+			SetTargetGate(FinishLine->GetNextMarker());
+		}
 	}
 
 	// raise the race started flag so any respawned vehicles start with controls unlocked 
@@ -152,7 +169,18 @@ void ATimeTrialPlayerController::StartRace()
 	IncrementLapCount();
 
 	// enable input on the pawn
-	GetPawn()->EnableInput(this);
+	SetPause(false);
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+	bShowMouseCursor = false;
+
+	if (APawn* Pawn = GetPawn())
+	{
+		Pawn->EnableInput(this);
+	}
 }
 
 void ATimeTrialPlayerController::IncrementLapCount()
@@ -161,7 +189,10 @@ void ATimeTrialPlayerController::IncrementLapCount()
 	++CurrentLap;
 
 	// update the UI
-	UIWidget->UpdateLapCount(CurrentLap, GetWorld()->GetTimeSeconds());
+	if (IsValid(UIWidget) && GetWorld())
+	{
+		UIWidget->UpdateLapCount(CurrentLap, GetWorld()->GetTimeSeconds());
+	}
 }
 
 ATimeTrialTrackGate* ATimeTrialPlayerController::GetTargetGate()

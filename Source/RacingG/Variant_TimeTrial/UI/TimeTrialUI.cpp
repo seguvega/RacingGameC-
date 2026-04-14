@@ -3,20 +3,42 @@
 
 #include "TimeTrialUI.h"
 #include "TimeTrialStartUI.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 void UTimeTrialUI::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	// create the start countdown widget
+	if (!StartUIClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TimeTrialUI: StartUIClass is not set; starting race immediately."));
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UTimeTrialUI::StartRace));
+		}
+		return;
+	}
+
 	UTimeTrialStartUI* StartUI = CreateWidget<UTimeTrialStartUI>(GetOwningPlayer(), StartUIClass);
+	if (!StartUI)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TimeTrialUI: Failed to create StartUI widget (class %s); starting race immediately."), *GetNameSafe(StartUIClass));
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UTimeTrialUI::StartRace));
+		}
+		return;
+	}
+
 	StartUI->AddToViewport(0);
 
 	// subscribe to the countdown finished delegate
-	//StartUI->OnCountdownFinished.AddDynamic(this, &UTimeTrialUI::StartRace);
+	StartUI->OnCountdownFinished.AddDynamic(this, &UTimeTrialUI::StartRace);
 
 	// start the countdown
-	//StartUI->StartCountdown();
+	StartUI->StartCountdown();
 }
 
 void UTimeTrialUI::UpdateLapCount(int32 Lap, float NewLapStartTime)
