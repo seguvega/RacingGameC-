@@ -50,7 +50,6 @@ void ARacingGPlayerController::BeginPlay()
 		} else {
 
 			UE_LOG(LogRacingG, Error, TEXT("Could not spawn vehicle UI widget."));
-
 		}
 	}
 }

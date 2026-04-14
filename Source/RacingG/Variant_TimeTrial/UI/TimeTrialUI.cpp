@@ -13,10 +13,10 @@ void UTimeTrialUI::NativeConstruct()
 	StartUI->AddToViewport(0);
 
 	// subscribe to the countdown finished delegate
-	StartUI->OnCountdownFinished.AddDynamic(this, &UTimeTrialUI::StartRace);
+	//StartUI->OnCountdownFinished.AddDynamic(this, &UTimeTrialUI::StartRace);
 
 	// start the countdown
-	StartUI->StartCountdown();
+	//StartUI->StartCountdown();
 }
 
 void UTimeTrialUI::UpdateLapCount(int32 Lap, float NewLapStartTime)

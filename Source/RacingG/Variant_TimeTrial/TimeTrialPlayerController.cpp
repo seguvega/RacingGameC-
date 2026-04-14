@@ -42,35 +42,41 @@ void ATimeTrialPlayerController::BeginPlay()
 			}
 		}
 
-		// create the UI widget
-		UIWidget = CreateWidget<UTimeTrialUI>(this, UIWidgetClass);
-
-		if (UIWidget)
+		if(!UIWidgetClass || !VehicleUIClass)
 		{
-			UIWidget->AddToViewport(0);
-
-			// subscribe to the race start delegate
-			UIWidget->OnRaceStart.AddDynamic(this, &ATimeTrialPlayerController::StartRace);
-
-		} else {
-
-			UE_LOG(LogRacingG, Error, TEXT("Could not spawn Time Trial UI widget."));
-
+			UE_LOG(LogRacingG, Error, TEXT("No Time Trial UI widget class specified. Please set the UIWidgetClass property in the TimeTrialPlayerController blueprint."));
+			return;
 		}
-		
 
-		// spawn the UI widget and add it to the viewport
-		VehicleUI = CreateWidget<URacingGUI>(this, VehicleUIClass);
+		//// create the UI widget
+		//UIWidget = CreateWidget<UTimeTrialUI>(this, UIWidgetClass);
 
-		if (VehicleUI)
-		{
-			VehicleUI->AddToViewport(0);
+		//if (UIWidget)
+		//{
+		//	UIWidget->AddToViewport(0);
 
-		} else {
+		//	// subscribe to the race start delegate
+		//	//UIWidget->OnRaceStart.AddDynamic(this, &ATimeTrialPlayerController::StartRace);
 
-			UE_LOG(LogRacingG, Error, TEXT("Could not spawn vehicle UI widget."));
+		//} else {
 
-		}
+		//	UE_LOG(LogRacingG, Error, TEXT("Could not spawn Time Trial UI widget."));
+
+		//}
+		//
+
+		//// spawn the UI widget and add it to the viewport
+		//VehicleUI = CreateWidget<URacingGUI>(this, VehicleUIClass);
+
+		//if (VehicleUI)
+		//{
+		//	VehicleUI->AddToViewport(0);
+
+		//} else {
+
+		//	UE_LOG(LogRacingG, Error, TEXT("Could not spawn vehicle UI widget."));
+
+		//}
 	}
 
 }
