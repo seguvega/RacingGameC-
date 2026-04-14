@@ -58,7 +58,8 @@ ARacingGPawn::ARacingGPawn()
 void ARacingGPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	UE_LOG(LogTemp, Warning, TEXT("ThrottleAction Path = %s"), *GetPathNameSafe(ThrottleAction));
+	UE_LOG(LogTemp, Warning, TEXT("SteeringAction Path = %s"), *GetPathNameSafe(SteeringAction));
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// steering 
@@ -127,12 +128,14 @@ void ARacingGPawn::Tick(float Delta)
 void ARacingGPawn::Steering(const FInputActionValue& Value)
 {
 	// route the input
+	UE_LOG(LogTemp, Warning, TEXT("Steering"));
 	DoSteering(Value.Get<float>());
 }
 
 void ARacingGPawn::Throttle(const FInputActionValue& Value)
 {
 	// route the input
+	UE_LOG(LogTemp, Warning, TEXT("Throttle"));
 	DoThrottle(Value.Get<float>());
 }
 
