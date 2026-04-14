@@ -44,6 +44,7 @@ ARacingGPawn::ARacingGPawn()
 
 	BackCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Back Camera"));
 	BackCamera->SetupAttachment(BackSpringArm);
+	BackCamera->bAutoActivate = true;
 
 	// Configure the car mesh
 	GetMesh()->SetSimulatePhysics(true);

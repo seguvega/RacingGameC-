@@ -25,23 +25,6 @@ void ATimeTrialPlayerController::BeginPlay()
 	// only spawn UI on local player controllers
 	if (IsLocalPlayerController())
 	{
-		if (ShouldUseTouchControls())
-		{
-			// spawn the mobile controls widget
-			MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
-
-			if (MobileControlsWidget)
-			{
-				// add the controls to the player screen
-				MobileControlsWidget->AddToPlayerScreen(0);
-
-			} else {
-
-				UE_LOG(LogRacingG, Error, TEXT("Could not spawn mobile controls widget."));
-
-			}
-		}
-
 		if(!UIWidgetClass || !VehicleUIClass)
 		{
 			UE_LOG(LogRacingG, Error, TEXT("No Time Trial UI widget class specified. Please set the UIWidgetClass property in the TimeTrialPlayerController blueprint."));
@@ -94,15 +77,6 @@ void ATimeTrialPlayerController::SetupInputComponent()
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
-			}
-
-			// only add these IMCs if we're not using mobile touch input
-			if (!ShouldUseTouchControls())
-			{
-				for (UInputMappingContext* CurrentContext : MobileExcludedMappingContexts)
-				{
-					Subsystem->AddMappingContext(CurrentContext, 0);
-				}
 			}
 		}
 	}
