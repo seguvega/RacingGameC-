@@ -9,7 +9,7 @@
 /**
  *  Sports car wheeled vehicle implementation
  */
-UCLASS(abstract)
+UCLASS(BlueprintType, Blueprintable, Abstract)
 class ARacingGSportsCar : public ARacingGPawn
 {
 	GENERATED_BODY()
