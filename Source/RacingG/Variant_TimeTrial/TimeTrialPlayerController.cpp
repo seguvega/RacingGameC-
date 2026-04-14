@@ -147,9 +147,9 @@ void ATimeTrialPlayerController::StartRace()
 	SetInputMode(InputMode);
 	bShowMouseCursor = false;
 
-	if (APawn* Pawn = GetPawn())
+	if (APawn* ControlledPawn = GetPawn())
 	{
-		Pawn->EnableInput(this);
+		ControlledPawn->EnableInput(this);
 	}
 }
 
