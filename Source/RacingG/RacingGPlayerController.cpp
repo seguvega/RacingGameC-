@@ -66,7 +66,7 @@ void ARacingGPlayerController::SetupInputComponent()
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
-				Subsystem->AddMappingContext(CurrentContext, 0);
+				Subsystem->AddMappingContext(CurrentContext, 0);			
 			}
 
 			// only add these IMCs if we're not using mobile touch input
@@ -95,6 +95,8 @@ void ARacingGPlayerController::Tick(float Delta)
 void ARacingGPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
+
+	UE_LOG(LogRacingG, Log, TEXT("Possessed pawn: %s"), *InPawn->GetName());
 
 	// get a pointer to the controlled pawn
 	VehiclePawn = CastChecked<ARacingGPawn>(InPawn);

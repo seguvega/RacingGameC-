@@ -25,61 +25,40 @@ void ATimeTrialPlayerController::BeginPlay()
 	// only spawn UI on local player controllers
 	if (IsLocalPlayerController())
 	{
-		if (ShouldUseTouchControls())
-		{
-			// spawn the mobile controls widget
-			MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
-
-			if (MobileControlsWidget)
-			{
-				// add the controls to the player screen
-				MobileControlsWidget->AddToPlayerScreen(0);
-
-			} else {
-
-				UE_LOG(LogRacingG, Error, TEXT("Could not spawn mobile controls widget."));
-
-			}
-		}
-
 		if(!UIWidgetClass || !VehicleUIClass)
 		{
-			UE_LOG(LogRacingG, Warning, TEXT("TimeTrialPlayerController: UIWidgetClass or VehicleUIClass not set; continuing without one or both UI widgets."));
+			UE_LOG(LogRacingG, Error, TEXT("No Time Trial UI widget class specified. Please set the UIWidgetClass property in the TimeTrialPlayerController blueprint."));
+			return;
 		}
 
-		// create the time trial UI widget
-		if (UIWidgetClass)
-		{
-			UIWidget = CreateWidget<UTimeTrialUI>(this, UIWidgetClass);
-			if (UIWidget)
-			{
-				UIWidget->AddToViewport(0);
-				UIWidget->OnRaceStart.AddDynamic(this, &ATimeTrialPlayerController::StartRace);
-			}
-			else
-			{
-				UE_LOG(LogRacingG, Error, TEXT("TimeTrialPlayerController: Could not spawn Time Trial UI widget (class %s)."), *GetNameSafe(UIWidgetClass));
-			}
-		}
+		// create the UI widget
+		UIWidget = CreateWidget<UTimeTrialUI>(this, UIWidgetClass);
 
-		// create the vehicle HUD widget
-		if (VehicleUIClass)
+		if (UIWidget)
 		{
-			VehicleUI = CreateWidget<URacingGUI>(this, VehicleUIClass);
-			if (VehicleUI)
-			{
-				VehicleUI->AddToViewport(0);
-			}
-			else
-			{
-				UE_LOG(LogRacingG, Error, TEXT("TimeTrialPlayerController: Could not spawn vehicle UI widget (class %s)."), *GetNameSafe(VehicleUIClass));
-			}
-		}
+			UIWidget->AddToViewport(0);
 
-		// If the UI is missing, don't leave the player permanently without control.
-		if (!IsValid(UIWidget))
+			// subscribe to the race start delegate
+			//UIWidget->OnRaceStart.AddDynamic(this, &ATimeTrialPlayerController::StartRace);
+
+		} else {
+
+			UE_LOG(LogRacingG, Error, TEXT("Could not spawn Time Trial UI widget."));
+
+		}
+		
+
+		// spawn the UI widget and add it to the viewport
+		VehicleUI = CreateWidget<URacingGUI>(this, VehicleUIClass);
+
+		if (VehicleUI)
 		{
-			StartRace();
+			VehicleUI->AddToViewport(0);
+
+		} else {
+
+			UE_LOG(LogRacingG, Error, TEXT("Could not spawn vehicle UI widget."));
+
 		}
 	}
 
@@ -98,15 +77,6 @@ void ATimeTrialPlayerController::SetupInputComponent()
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
-			}
-
-			// only add these IMCs if we're not using mobile touch input
-			if (!ShouldUseTouchControls())
-			{
-				for (UInputMappingContext* CurrentContext : MobileExcludedMappingContexts)
-				{
-					Subsystem->AddMappingContext(CurrentContext, 0);
-				}
 			}
 		}
 	}
