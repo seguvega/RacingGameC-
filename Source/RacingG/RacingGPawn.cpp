@@ -278,7 +278,7 @@ void ARacingGPawn::DoResetVehicle()
 void ARacingGPawn::FlippedCheck()
 {
 	// check the difference in angle between the mesh's up vector and world up
-	if (GetVelocity().Length() > 10.f)
+	if (GetVelocity().Length() > 50.f)
 	{
 		return;
 	}
@@ -323,7 +323,6 @@ void ARacingGPawn::DoDownwardPush()
 	{
 		ForceAmount *= 0.1f;
 	}
-
 	GetMesh()->AddForce(AdhesionDir * ForceAmount, NAME_None, true);
 }
 
