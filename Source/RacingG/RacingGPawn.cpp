@@ -12,6 +12,7 @@
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "RacingG.h"
 #include "TimerManager.h"
+//#include "DrawDebugHelpers.h"
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
 
@@ -99,7 +100,8 @@ void ARacingGPawn::BeginPlay()
 	Super::BeginPlay();
 
 	// set up the flipped check timer
-	GetWorld()->GetTimerManager().SetTimer(FlipCheckTimer, this, &ARacingGPawn::FlippedCheck, FlipCheckTime, true);
+	//GetWorld()->GetTimerManager().SetTimer(FlipCheckTimer, this, &ARacingGPawn::FlippedCheck, FlipCheckTime, true);
+	GetWorldTimerManager().SetTimer(DownwardPushTimer, this, &ARacingGPawn::DoDownwardPush, 0.09f, true);
 }
 
 void ARacingGPawn::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -128,14 +130,12 @@ void ARacingGPawn::Tick(float Delta)
 void ARacingGPawn::Steering(const FInputActionValue& Value)
 {
 	// route the input
-	UE_LOG(LogTemp, Warning, TEXT("Steering"));
 	DoSteering(Value.Get<float>());
 }
 
 void ARacingGPawn::Throttle(const FInputActionValue& Value)
 {
 	// route the input
-	UE_LOG(LogTemp, Warning, TEXT("Throttle"));
 	DoThrottle(Value.Get<float>());
 }
 
@@ -279,8 +279,7 @@ void ARacingGPawn::DoResetVehicle()
 void ARacingGPawn::FlippedCheck()
 {
 	// check the difference in angle between the mesh's up vector and world up
-	const float UpDot = FVector::DotProduct(FVector::UpVector, GetMesh()->GetUpVector());
-
+	float UpDot = FVector::DotProduct(FVector::UpVector, GetMesh()->GetUpVector());
 	if (UpDot < FlipCheckMinDot)
 	{
 		// is this the second time we've checked that the vehicle is still flipped?
@@ -298,6 +297,29 @@ void ARacingGPawn::FlippedCheck()
 		// we're upright. reset the flipped check flag
 		bPreviousFlipCheck = false;
 	}
+}
+
+void ARacingGPawn::DoDownwardPush()
+{
+	FVector CarUp = GetMesh()->GetUpVector();
+	FVector Velocity = GetVelocity();
+	FVector TraceDir = (Velocity.Size() > 10.0f) ? -Velocity.GetSafeNormal() : -CarUp;
+	FHitResult Hit;
+	GetWorld()->LineTraceSingleByChannel(Hit,GetActorLocation(),GetActorLocation() + TraceDir * 500,ECC_Visibility);
+	FVector SurfaceNormal = Hit.bBlockingHit ? Hit.Normal : FVector::UpVector;
+	if (FVector::DotProduct(SurfaceNormal, CarUp) > 0)
+	{
+		SurfaceNormal = -SurfaceNormal;
+	}
+	float alignment = FVector::DotProduct(CarUp, SurfaceNormal);
+	float factor = (1.0f - alignment) * 0.5f;
+	factor = FMath::Clamp(factor, 0.0f, 1.0f);
+	factor = FMath::Pow(factor, 2.0f);
+	float BaseForce = 10000.0f * factor;
+	float steeringFactor = FMath::Lerp(1.0f, 0.65f, FMath::Abs(ChaosVehicleMovement->GetSteeringInput()));
+	float FinalForce = BaseForce * steeringFactor;
+	FVector Force = SurfaceNormal * FinalForce;
+	GetMesh()->AddForce(Force, NAME_None, true);
 }
 
 #undef LOCTEXT_NAMESPACE

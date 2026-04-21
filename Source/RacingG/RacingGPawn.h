@@ -81,7 +81,7 @@ protected:
 
 	/** Time between automatic flip checks */
 	UPROPERTY(EditAnywhere, Category="Flip Check", meta = (Units = "s"))
-	float FlipCheckTime = 3.0f;
+	float FlipCheckTime = 5.0f;
 
 	/** Minimum dot product value for the vehicle's up direction that we still consider upright */
 	UPROPERTY(EditAnywhere, Category="Flip Check")
@@ -89,6 +89,8 @@ protected:
 
 	/** Flip check timer */
 	FTimerHandle FlipCheckTimer;
+
+	FTimerHandle DownwardPushTimer;
 
 public:
 	ARacingGPawn();
@@ -191,6 +193,9 @@ protected:
 	/** Checks if the car is flipped upside down and automatically resets it */
 	UFUNCTION()
 	void FlippedCheck();
+
+	UFUNCTION()
+	void DoDownwardPush();
 
 public:
 	/** Returns the front spring arm subobject */
