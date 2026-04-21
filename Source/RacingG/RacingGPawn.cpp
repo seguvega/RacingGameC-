@@ -59,8 +59,6 @@ ARacingGPawn::ARacingGPawn()
 void ARacingGPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	UE_LOG(LogTemp, Warning, TEXT("ThrottleAction Path = %s"), *GetPathNameSafe(ThrottleAction));
-	UE_LOG(LogTemp, Warning, TEXT("SteeringAction Path = %s"), *GetPathNameSafe(SteeringAction));
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// steering 
@@ -100,8 +98,8 @@ void ARacingGPawn::BeginPlay()
 	Super::BeginPlay();
 
 	// set up the flipped check timer
-	//GetWorld()->GetTimerManager().SetTimer(FlipCheckTimer, this, &ARacingGPawn::FlippedCheck, FlipCheckTime, true);
-	GetWorldTimerManager().SetTimer(DownwardPushTimer, this, &ARacingGPawn::DoDownwardPush, 0.09f, true);
+	GetWorld()->GetTimerManager().SetTimer(FlipCheckTimer, this, &ARacingGPawn::FlippedCheck, FlipCheckTime, true);
+	GetWorldTimerManager().SetTimer(DownwardPushTimer, this, &ARacingGPawn::DoDownwardPush, 0.2f, true);
 }
 
 void ARacingGPawn::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -121,10 +119,11 @@ void ARacingGPawn::Tick(float Delta)
 	GetMesh()->SetAngularDamping(bMovingOnGround ? 0.0f : 3.0f);
 
 	// realign the camera yaw to face front
-	float CameraYaw = BackSpringArm->GetRelativeRotation().Yaw;
+	/*float CameraYaw = BackSpringArm->GetRelativeRotation().Yaw;
 	CameraYaw = FMath::FInterpTo(CameraYaw, 0.0f, Delta, 1.0f);
 
 	BackSpringArm->SetRelativeRotation(FRotator(0.0f, CameraYaw, 0.0f));
+	*/
 }
 
 void ARacingGPawn::Steering(const FInputActionValue& Value)
@@ -279,6 +278,10 @@ void ARacingGPawn::DoResetVehicle()
 void ARacingGPawn::FlippedCheck()
 {
 	// check the difference in angle between the mesh's up vector and world up
+	if (GetVelocity().Length() > 10.f)
+	{
+		return;
+	}
 	float UpDot = FVector::DotProduct(FVector::UpVector, GetMesh()->GetUpVector());
 	if (UpDot < FlipCheckMinDot)
 	{
@@ -301,25 +304,27 @@ void ARacingGPawn::FlippedCheck()
 
 void ARacingGPawn::DoDownwardPush()
 {
-	FVector CarUp = GetMesh()->GetUpVector();
-	FVector Velocity = GetVelocity();
-	FVector TraceDir = (Velocity.Size() > 10.0f) ? -Velocity.GetSafeNormal() : -CarUp;
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByChannel(Hit,GetActorLocation(),GetActorLocation() + TraceDir * 500,ECC_Visibility);
-	FVector SurfaceNormal = Hit.bBlockingHit ? Hit.Normal : FVector::UpVector;
-	if (FVector::DotProduct(SurfaceNormal, CarUp) > 0)
+	const FVector Start = GetActorLocation();
+	const FVector DownDir = -GetActorUpVector();
+	const FVector End = Start + DownDir * 300.0f;
+	if (!GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility))
 	{
-		SurfaceNormal = -SurfaceNormal;
+		return; //No Surface 
 	}
-	float alignment = FVector::DotProduct(CarUp, SurfaceNormal);
-	float factor = (1.0f - alignment) * 0.5f;
-	factor = FMath::Clamp(factor, 0.0f, 1.0f);
-	factor = FMath::Pow(factor, 2.0f);
-	float BaseForce = 10000.0f * factor;
-	float steeringFactor = FMath::Lerp(1.0f, 0.65f, FMath::Abs(ChaosVehicleMovement->GetSteeringInput()));
-	float FinalForce = BaseForce * steeringFactor;
-	FVector Force = SurfaceNormal * FinalForce;
-	GetMesh()->AddForce(Force, NAME_None, true);
+	const FVector AdhesionDir = -Hit.Normal;//push toward the surface
+	const float Speed = GetVelocity().Size();
+	float ForceAmount = FMath::GetMappedRangeValueClamped(
+		FVector2D(200.0f, 3000.0f),
+		FVector2D(5000.0f, 25000.0f),
+		Speed
+	);
+	if (FMath::IsNearlyZero(GetChaosVehicleMovement()->GetThrottleInput()))
+	{
+		ForceAmount *= 0.1f;
+	}
+
+	GetMesh()->AddForce(AdhesionDir * ForceAmount, NAME_None, true);
 }
 
 #undef LOCTEXT_NAMESPACE
